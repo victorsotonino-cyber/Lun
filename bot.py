@@ -86,5 +86,5 @@ async def ayuda(ctx):
     await ctx.send(embed=embed_ayuda)
 
 # Pón tu token real aquí o en las variables de entorno de Railway
-bot.run('TU_TOKEN_REAL_DE_DISCORD')
+bot.run(os.getenv('TOKEN'))
 
