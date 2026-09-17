@@ -7,7 +7,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Tus nuevos emojis personalizados
+# Tus emojis personalizados para el panel
 EMOJI_SOPORTE = "<:emoji_11:1550144504990801930>"
 EMOJI_TIENDA = "<:emoji_20:1550146329915949077>"
 EMOJI_REPORTE = "<:emoji_10:1550144465765793792>"
@@ -15,9 +15,28 @@ EMOJI_REGALO = "<:emoji_14:1550144666618302525>"
 EMOJI_MANTENIMIENTO = "<:emoji_9:1550144328540618882>"
 EMOJI_VIPERFINDER = "<:emoji_12:1550144549412802631>"
 
+# Vista con los botones de control dentro del ticket (Reclamar y Cerrar)
+class TicketControlView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Reclamar", style=discord.ButtonStyle.green, emoji="🙋‍♂️", custom_id="ticket_reclamar")
+    async def reclamar_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message(f"🔒 Ticket reclamado por {interaction.user.mention}")
+        button.disabled = True
+        await interaction.message.edit(view=self)
+
+    @discord.ui.button(label="Cerrar", style=discord.ButtonStyle.red, emoji="🔒", custom_id="ticket_cerrar")
+    async def cerrar_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("⚠️ El canal se cerrará en 5 segundos...")
+        import asyncio
+        await asyncio.sleep(5)
+        await interaction.channel.delete()
+
+# Vista principal del panel de tickets
 class TicketView(discord.ui.View):
     def __init__(self):
-        super().__init__(timeout=None) # El panel no expira
+        super().__init__(timeout=None)
 
     @discord.ui.button(label="Soporte", style=discord.ButtonStyle.secondary, emoji=EMOJI_SOPORTE, custom_id="ticket_soporte", row=0)
     async def soporte_button(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -51,6 +70,15 @@ class TicketView(discord.ui.View):
             guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True)
         }
         canal = await guild.create_text_channel(name=f"ticket-{tipo}-{interaction.user.name}", overwrites=overwrites)
+        
+        # Enviar mensaje dentro del nuevo ticket con los botones de Reclamar y Cerrar
+        embed_ticket = discord.Embed(
+            title=f"Ticket de {tipo.capitalize()}",
+            description=f"Hola {interaction.user.mention}, un miembro del staff te atenderá pronto.\nUsa los botones de abajo para gestionar el ticket.",
+            color=discord.Color.blue()
+        )
+        await canal.send(embed=embed_ticket, view=TicketControlView())
+        
         await interaction.response.send_message(f"¡Canal de ticket creado con éxito! Ve a {canal.mention}", ephemeral=True)
 
 @bot.event
@@ -86,6 +114,5 @@ async def ayuda(ctx):
     embed_ayuda.add_field(name="!ayuda", value="Muestra esta guía de comandos.", inline=False)
     await ctx.send(embed=embed_ayuda)
 
-# Pón tu token real aquí o en las variables de entorno de Railway
+# Arranca usando la variable de entorno TOKEN de Railway
 bot.run(os.getenv('TOKEN'))
-
